@@ -1,0 +1,11 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration/
+dist/
+
+# FreeRDP and OpenSSL build output (Vendor/FreeRDP/build.sh)
+Vendor/FreeRDP/out

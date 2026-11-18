@@ -1,0 +1,40 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.43137,0.35294,1.00000,1.00000",
+      "srgb:0.13333,0.75686,0.93333,1.00000"
+    ],
+    "orientation" : {
+      "start" : { "x" : 0.5, "y" : 0 },
+      "stop" : { "x" : 0.5, "y" : 1 }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [ { "image-name" : "Dock.svg", "name" : "Dock" } ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "specular" : true,
+      "translucency" : { "enabled" : false, "value" : 0 }
+    },
+    {
+      "layers" : [ { "image-name" : "Lines.svg", "name" : "Lines" } ],
+      "shadow" : { "kind" : "layer-color", "opacity" : 0.3 },
+      "translucency" : { "enabled" : false, "value" : 0 }
+    },
+    {
+      "layers" : [ { "image-name" : "Clip.svg", "name" : "Clip" } ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "specular" : true,
+      "translucency" : { "enabled" : false, "value" : 0 }
+    },
+    {
+      "layers" : [ { "image-name" : "Body.svg", "name" : "Body" } ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.6 },
+      "specular" : true,
+      "translucency" : { "enabled" : true, "value" : 0.15 }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

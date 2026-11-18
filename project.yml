@@ -1,0 +1,539 @@
+name: Kitzi
+
+options:
+  bundleIdPrefix: com.erciyesoft
+  developmentLanguage: en
+  deploymentTarget:
+    macOS: "14.5"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "14.5"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: NO
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_DEBUG_DYLIB: NO
+
+targetTemplates:
+  StaticModule:
+    type: framework.static
+    platform: macOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.erciyesoft.Kitzi.$(PRODUCT_NAME:rfc1034identifier)
+        SKIP_INSTALL: YES
+  Vendored:
+    templates: [StaticModule]
+    settings:
+      base:
+        SWIFT_SUPPRESS_WARNINGS: YES
+
+targets:
+  # Third-party code copied into the repo (see Vendor/README.md). No package manager.
+  Defaults:
+    templates: [Vendored]
+    sources: [Vendor/Defaults/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  KeyboardShortcuts:
+    templates: [Vendored]
+    sources: [Vendor/KeyboardShortcuts/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        OTHER_SWIFT_FLAGS: "$(inherited) -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-upcoming-feature InferIsolatedConformances"
+  LaunchAtLogin:
+    templates: [Vendored]
+    sources: [Vendor/LaunchAtLogin/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  Settings:
+    templates: [Vendored]
+    sources: [Vendor/Settings/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  Sauce:
+    templates: [Vendored]
+    sources: [Vendor/Sauce/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  Fuse:
+    templates: [Vendored]
+    sources: [Vendor/Fuse/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  Logging:
+    templates: [Vendored]
+    sources: [Vendor/Logging/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_PACKAGE_NAME: swift_log
+  SwiftHEXColors:
+    templates: [Vendored]
+    sources: [Vendor/SwiftHEXColors/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  ConfettiSwiftUI:
+    templates: [Vendored]
+    sources: [Vendor/ConfettiSwiftUI/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+  SmoothGradient:
+    templates: [Vendored]
+    sources: [Vendor/SmoothGradient/Sources]
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+
+  # Shared types between the host app and feature modules.
+  KitziCore:
+    templates: [StaticModule]
+    sources: [Modules/KitziCore]
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+
+  # Clipboard history (forked from Maccy, MIT).
+  ClipboardKit:
+    templates: [StaticModule]
+    sources: [Modules/ClipboardKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: Defaults
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+      - target: LaunchAtLogin
+        link: false
+      - target: Settings
+        link: false
+      - target: Sauce
+        link: false
+      - target: Fuse
+        link: false
+      - target: Logging
+        link: false
+      - target: SwiftHEXColors
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Dock previews, window switcher, gestures, widgets (forked from DockDoor, GPL-3.0).
+  DockKit:
+    templates: [StaticModule]
+    sources: [Modules/DockKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: Defaults
+        link: false
+      - target: LaunchAtLogin
+        link: false
+      - target: SmoothGradient
+        link: false
+      - target: ConfettiSwiftUI
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+
+  # Battery levels of the Mac and Bluetooth accessories in the menu bar.
+  BatteryKit:
+    templates: [StaticModule]
+    sources: [Modules/BatteryKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Kitzi Dock: a replacement Dock with magnification and window previews.
+  DockBarKit:
+    templates: [StaticModule]
+    sources: [Modules/DockBarKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Screenshots: capture, annotate, copy, save, pin and recognize text.
+  CaptureKit:
+    templates: [StaticModule]
+    sources: [Modules/CaptureKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Per-app volume mixer (Core Audio process taps).
+  VolumeKit:
+    templates: [StaticModule]
+    sources: [Modules/VolumeKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # File converter (images, PDF, video, audio, documents, ZIP) with built-in macOS tools.
+  ConvertKit:
+    templates: [StaticModule]
+    sources: [Modules/ConvertKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Windows habits: Finder cut and paste with ⌘X / ⌘V, more to come.
+  WindowsKit:
+    templates: [StaticModule]
+    sources: [Modules/WindowsKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: Sauce
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Disk space analyzer with a sunburst chart (DaisyDisk-style).
+  DiskKit:
+    templates: [StaticModule]
+    sources: [Modules/DiskKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Hides and organizes menu bar icons (Bartender-style).
+  MenuBarKit:
+    templates: [StaticModule]
+    sources: [Modules/MenuBarKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Folder rules that sort, rename and clean up files (Hazel-style), plus App Sweep.
+  RulesKit:
+    templates: [StaticModule]
+    sources: [Modules/RulesKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Panel in the MacBook notch: now playing, file shelf, calendar, volume/brightness HUD (modelled on boring.notch, GPL-3.0).
+  NotchKit:
+    templates: [StaticModule]
+    sources: [Modules/NotchKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # Display manager (BetterDisplay-style): resolutions, DDC/CI brightness, virtual displays.
+  DisplayKit:
+    templates: [StaticModule]
+    sources: [Modules/DisplayKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+
+  # FreeRDP client glue in C. FreeRDP and OpenSSL come prebuilt from Vendor/FreeRDP/out;
+  # run Vendor/FreeRDP/build.sh once to create it (see Vendor/README.md).
+  RDPBridge:
+    type: library.static
+    platform: macOS
+    sources:
+      - path: Modules/RDPBridge
+        headerVisibility: project
+        excludes: ["include/module.modulemap"]
+    settings:
+      base:
+        PRODUCT_NAME: RDPBridge
+        SKIP_INSTALL: YES
+        GCC_C_LANGUAGE_STANDARD: gnu11
+        HEADER_SEARCH_PATHS: ["$(SRCROOT)/Modules/RDPBridge/include", "$(SRCROOT)/Vendor/FreeRDP/out/include"]
+        # FreeRDP's log macros record __FILE__; keep the checkout path out of the binary.
+        OTHER_CFLAGS: ["$(inherited)", "-ffile-prefix-map=$(SRCROOT)/="]
+        CLANG_WARN_DOCUMENTATION_COMMENTS: NO
+
+  # Remote Desktop: saved PCs in groups and RDP sessions in Kitzi windows (Windows App-style).
+  RemoteKit:
+    templates: [StaticModule]
+    sources: [Modules/RemoteKit]
+    dependencies:
+      - target: KitziCore
+        link: false
+      - target: KeyboardShortcuts
+        link: false
+      - target: RDPBridge
+        link: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_INCLUDE_PATHS: ["$(inherited)", "$(SRCROOT)/Modules/RDPBridge/include"]
+
+  Kitzi:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+      - path: App/Resources
+        buildPhase: resources
+    dependencies:
+      - target: KitziCore
+        embed: false
+      - target: ClipboardKit
+        embed: false
+      - target: DockKit
+        embed: false
+      - target: BatteryKit
+        embed: false
+      - target: DockBarKit
+        embed: false
+      - target: CaptureKit
+        embed: false
+      - target: VolumeKit
+        embed: false
+      - target: ConvertKit
+        embed: false
+      - target: WindowsKit
+        embed: false
+      - target: DiskKit
+        embed: false
+      - target: MenuBarKit
+        embed: false
+      - target: RulesKit
+        embed: false
+      - target: NotchKit
+        embed: false
+      - target: DisplayKit
+        embed: false
+      - target: RemoteKit
+        embed: false
+      - target: RDPBridge
+        embed: false
+      - target: Defaults
+        embed: false
+      - target: KeyboardShortcuts
+        embed: false
+      - target: LaunchAtLogin
+        embed: false
+      - target: Settings
+        embed: false
+      - target: Sauce
+        embed: false
+      - target: Fuse
+        embed: false
+      - target: Logging
+        embed: false
+      - target: SwiftHEXColors
+        embed: false
+      - target: ConfettiSwiftUI
+        embed: false
+      - target: SmoothGradient
+        embed: false
+    settings:
+      base:
+        PRODUCT_NAME: Kitzi
+        PRODUCT_BUNDLE_IDENTIFIER: com.erciyesoft.Kitzi
+        INFOPLIST_FILE: App/Info.plist
+        SWIFT_INCLUDE_PATHS: ["$(inherited)", "$(SRCROOT)/Modules/RDPBridge/include"]
+        CODE_SIGN_ENTITLEMENTS: App/Kitzi.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # DockDoor references private SwiftUI Glass variants; leave them weakly undefined at link time.
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          # FreeRDP + OpenSSL for RemoteKit, and the system frameworks they use.
+          - "$(SRCROOT)/Vendor/FreeRDP/out/lib/libfreerdp-bundle.a"
+          - "-lz"
+          - "-framework"
+          - "AudioToolbox"
+          - "-framework"
+          - "CoreAudio"
+          - "-framework"
+          - "CoreMedia"
+          - "-framework"
+          - "CoreVideo"
+          - "-framework"
+          - "VideoToolbox"
+          - "-framework"
+          - "AVFoundation"
+          - "-framework"
+          - "IOKit"
+          - "-framework"
+          - "Carbon"
+          - "-framework"
+          - "Security"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI5GlassV8explicitAcA01_C0V_tcfC"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV11focusBorderACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV11siriSnippetACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV13controlCenterACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV14VariantOptionsV21forceActiveAppearanceAEvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV16cartouchePopoverACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV18notificationCenterACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV4dockACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV4menuACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV4siriACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV5clearACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV5loupeACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV6cameraACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV7regularACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV7sidebarACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV7widgetsACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV8appIconsACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV8avplayerACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV8keyboardACvgZ"
+          - "-Xlinker"
+          - "-U"
+          - "-Xlinker"
+          - "_$$s7SwiftUI6_GlassV8monogramACvgZ"
+
+schemes:
+  Kitzi:
+    build:
+      targets:
+        Kitzi: all
+    run:
+      config: Debug
+    archive:
+      config: Release

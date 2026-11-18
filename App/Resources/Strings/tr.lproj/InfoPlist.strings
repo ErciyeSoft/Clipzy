@@ -1,0 +1,5 @@
+"NSAppleEventsUsageDescription" = "Kitzi, dönüştürmek için Finder'da seçili dosyaları okumak ve Müzik ile Spotify'dan çalan şarkının bilgisini almak için AppleEvents kullanır.";
+"NSAudioCaptureUsageDescription" = "Kitzi, ses karıştırıcıda her uygulamanın sesini seçtiğiniz seviyede yeniden çalar.";
+"NSBluetoothAlwaysUsageDescription" = "Kitzi, Bluetooth klavye, fare ve kulaklıklarınızın pil seviyesini okur.";
+"NSCalendarsUsageDescription" = "Kitzi, Dock widget'larında yaklaşan etkinlikleri göstermek için takviminizi okur.";
+"NSCalendarsFullAccessUsageDescription" = "Kitzi, Dock widget'larında yaklaşan etkinlikleri göstermek için takviminizi okur.";

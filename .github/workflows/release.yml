@@ -1,0 +1,173 @@
+name: Release
+
+# Builds Kitzi.app (Apple Silicon + Intel) on a GitHub macOS runner and publishes
+# Kitzi-<version>.dmg and .zip as a GitHub Release. Run it from the Actions tab
+# ("Run workflow") or push a tag such as v0.1.0.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Sürüm (ör. 0.1.0)"
+        required: true
+        default: "0.1.0"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sürüm numarası
+        run: |
+          V="${VERSION#v}"
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "Sürüm: $V"
+
+      - name: Xcode
+        run: |
+          # Pick the installed Xcode with the newest Swift compiler (the project is developed
+          # with Swift 6.4; Swift 6.3 crashes on several modules).
+          BEST=""; BESTV=""
+          for x in /Applications/Xcode*.app; do
+            [ -L "$x" ] && continue
+            v="$("$x/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift" --version 2>/dev/null | sed -n 's/.*Swift version \([0-9.]*\).*/\1/p' | head -1)"
+            echo "$x -> Swift ${v:-?}"
+            [ -z "$v" ] && continue
+            if [ -z "$BESTV" ] || [ "$(printf '%s\n%s\n' "$BESTV" "$v" | sort -V | tail -1)" = "$v" ]; then BEST="$x"; BESTV="$v"; fi
+          done
+          echo "Seçilen: $BEST (Swift $BESTV)"
+          sudo xcode-select -s "$BEST"
+          xcodebuild -version
+          swift --version
+          sw_vers
+
+      - name: Araçlar
+        run: brew install cmake ninja || true
+
+      - name: FreeRDP önbelleği
+        id: freerdp-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: Vendor/FreeRDP/out
+          key: freerdp-${{ runner.os }}-${{ hashFiles('Vendor/FreeRDP/build.sh') }}
+
+      - name: FreeRDP ve OpenSSL
+        run: Vendor/FreeRDP/build.sh
+
+      - name: FreeRDP önbelleğini kaydet
+        if: steps.freerdp-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: Vendor/FreeRDP/out
+          key: freerdp-${{ runner.os }}-${{ hashFiles('Vendor/FreeRDP/build.sh') }}
+
+      - name: Derleme
+        run: |
+          # Swift 6.3 (the newest on this runner) crashes in the optimizer on several modules;
+          # the project is developed with Swift 6.4. Build without optimization on Swift < 6.4.
+          SV="$(swift --version 2>/dev/null | sed -n 's/.*Swift version \([0-9.]*\).*/\1/p' | head -1)"
+          if [ "$(printf '%s\n6.4\n' "$SV" | sort -V | head -1)" = "6.4" ]; then SWIFT_OPT="-O"; else SWIFT_OPT="-Onone"; fi
+          echo "Swift $SV, optimizasyon $SWIFT_OPT"
+          set +e
+          xcodebuild -project Kitzi.xcodeproj -scheme Kitzi -configuration Release \
+            -derivedDataPath build -skipMacroValidation -skipPackagePluginValidation \
+            ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            SWIFT_OPTIMIZATION_LEVEL="$SWIFT_OPT" \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            -IDEBuildingContinueBuildingAfterErrors=YES \
+            build > xcodebuild.log 2>&1
+          STATUS=$?
+          set -e
+          if [ $STATUS -ne 0 ]; then
+            echo "::group::Hatalar"
+            grep -E "error:|fatal error|Undefined symbol|ld: |While running pass| for '.*' \(at " xcodebuild.log | sort -u | head -150
+            echo "--- Başarısız komutlar"
+            sed -n '/The following build commands failed:/,/failure/p' xcodebuild.log | cut -c1-200
+            echo "--- Başarısız komutların çıktısı"
+            grep -n -B 30 -E "Command [A-Za-z]+ failed with a nonzero exit code" xcodebuild.log \
+              | grep -v -E "builtin-swiftTaskExecution|swift-frontend -frontend|^[0-9]+-    cd " | cut -c1-300 | tail -250
+            echo "--- Çökme ve bellek izleri"
+            grep -n -E "Stack dump|Segmentation|signal [0-9]|Killed|PLEASE|Assertion|out of memory|Abort trap|Program arguments" xcodebuild.log | cut -c1-300 | head -60
+            echo "::endgroup::"
+            tail -60 xcodebuild.log
+            exit $STATUS
+          fi
+          tail -5 xcodebuild.log
+
+      - name: Derleme günlüğü
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
+
+      - name: Paket
+        run: |
+          APP=build/Build/Products/Release/Kitzi.app
+          lipo -archs "$APP/Contents/MacOS/Kitzi"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist"
+          mkdir -p dist dmg
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "dist/Kitzi-$VERSION.zip"
+          cp -R "$APP" dmg/
+          ln -s /Applications dmg/Applications
+          for i in 1 2 3 4 5; do
+            hdiutil create -volname "Kitzi" -srcfolder dmg -ov -format UDZO "dist/Kitzi-$VERSION.dmg" && break
+            echo "hdiutil yeniden deneniyor ($i)"; sleep 5
+          done
+          test -f "dist/Kitzi-$VERSION.dmg"
+          (cd dist && shasum -a 256 Kitzi-* > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Sürüm notları
+        run: |
+          cat > notes.md <<EOF
+          Ücretsiz ve açık kaynak (GPL-3.0) macOS menü çubuğu uygulaması. macOS 14.5 ve üstü; Apple Silicon ve Intel Mac'lerde çalışır.
+
+          ### Kurulum
+          1. **Kitzi-$VERSION.dmg** dosyasını indirip açın, Kitzi'yi Uygulamalar klasörüne sürükleyin.
+          2. İlk açılışta macOS "doğrulanamadı" uyarısı verirse Sistem Ayarları › Gizlilik ve Güvenlik bölümünden **Yine de Aç**'a basın.
+          3. Karşılama penceresi Erişilebilirlik ve Ekran Kaydı izinlerini adım adım ister.
+
+          Aynı kısayolları kullanan Maccy ya da DockDoor kuruluysa kapatmanız önerilir.
+
+          Bu paket Apple onaylı (notarize edilmiş) bir geliştirici imzası taşımaz, bu yüzden ilk açılışta uyarı çıkar. Paket bu depodaki kaynak koddan GitHub Actions ile derlenmiştir.
+
+          Tanıtım sayfası: https://www.erciyesoft.com/urunlerimiz/kitzi-ucretsiz-mac-uygulamasi
+
+          ### English
+          Free and open-source macOS menu bar app (macOS 14.5+, Apple silicon and Intel). Open the DMG and drag Kitzi to Applications. If macOS says it cannot verify the app, go to System Settings › Privacy & Security and click **Open Anyway**. This build is not notarized; it is built from this repository by GitHub Actions.
+
+          ### SHA-256
+          \`\`\`
+          $(cat dist/SHA256SUMS.txt)
+          \`\`\`
+          EOF
+          cat notes.md
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/Kitzi-$VERSION.dmg dist/Kitzi-$VERSION.zip dist/SHA256SUMS.txt --clobber
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" dist/Kitzi-$VERSION.dmg dist/Kitzi-$VERSION.zip dist/SHA256SUMS.txt \
+              --title "Kitzi $VERSION" --notes-file notes.md --target "$GITHUB_SHA" --latest
+          fi

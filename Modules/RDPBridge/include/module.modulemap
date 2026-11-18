@@ -1,0 +1,4 @@
+module RDPBridge {
+  header "RDPBridge.h"
+  export *
+}
